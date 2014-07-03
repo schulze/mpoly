@@ -3,18 +3,19 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"log"
-	
+	"os"
+
 	// Using flint's nmods might be safer for larger moduli, but is
 	// slower for small moduli. Instead we pre-compute a table of
-	// powers up to some bound and use these to evaluate monomials. 
+	// powers up to some bound and use these to evaluate monomials.
 	//nmod "github.com/frithjof-schulze/flint.go/extras"
-	
+
+	"runtime"
 	"runtime/pprof"
 )
 
-// From the Sage program we get a definition of 
+// From the Sage program we get a definition of
 // 	N = #of variabeles
 // 	Nmod = modulus
 // 	DegBound = upper bound for the exponents in the polynomials
@@ -33,7 +34,7 @@ type Poly struct {
 
 var (
 	PowersTable [][]uint64 = make([][]uint64, Nmod)
-	MulTable [][]uint64 = make([][]uint64, Nmod)
+	MulTable    [][]uint64 = make([][]uint64, Nmod)
 )
 
 func InitPowers() {
@@ -57,7 +58,7 @@ func InitMuls() {
 
 func PowMod(a, exp uint64) uint64 {
 	val := uint64(1)
-	for i:=uint64(0); i<exp; i++ {
+	for i := uint64(0); i < exp; i++ {
 		val = (val * a) % Nmod
 	}
 	return val
@@ -131,7 +132,7 @@ func FilterForPoly(f *Poly, in chan *Point) chan *Point {
 		out <- nil
 		return
 	}
-	for i:= 0; i < 5; i++ {
+	for i := 0; i < runtime.NumCPU(); i++ {
 		go filter()
 	}
 	return out
@@ -177,6 +178,7 @@ func main() {
 	InitPowers()
 	InitMuls()
 
+	//runtime.GOMAXPROCS(runtime.NumCPU())
 	sols := RationalPoints(Polys)
 	for {
 		pt := <-sols
@@ -185,7 +187,7 @@ func main() {
 		}
 		points = append(points, *pt)
 	}
-	for _, pt := range points  {
+	for _, pt := range points {
 		fmt.Print(pt)
 		fmt.Println(",")
 	}
